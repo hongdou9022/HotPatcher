@@ -119,7 +119,10 @@ namespace ReleaseWorker
 		{
 
 			FString SaveToFile = FPaths::Combine(
-				FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(), Context.GetSettingObject()->GetVersionId()),
+				// ZJ_Change_Start: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
+				//FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(), Context.GetSettingObject()->GetVersionId()),
+				Context.GetSettingObject()->GetSaveAbsPath(),
+				// ZJ_Change_End: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
 				FString::Printf(TEXT("%s_Release.json"), *Context.GetSettingObject()->GetVersionId())
 			);
 			bool runState = UFLibAssetManageHelperEx::SaveStringToFile(SaveToFile, SaveToJson);
@@ -150,7 +153,10 @@ namespace ReleaseWorker
 		if (UFlibPatchParserHelper::TSerializeStructAsJsonString(*Context.GetSettingObject(),ConfigJson))
 		{
 			FString SaveToFile = FPaths::Combine(
-				FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(), Context.GetSettingObject()->GetVersionId()),
+				// ZJ_Change_Start: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
+				//FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(), Context.GetSettingObject()->GetVersionId()),
+				Context.GetSettingObject()->GetSaveAbsPath(),
+				// ZJ_Change_End: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
 				FString::Printf(TEXT("%s_ReleaseConfig.json"), *Context.GetSettingObject()->GetVersionId())
 			);
 			bool runState = UFLibAssetManageHelperEx::SaveStringToFile(SaveToFile, ConfigJson);
@@ -188,7 +194,10 @@ namespace ReleaseWorker
 			FString AssetsDependencyString = UFlibPatchParserHelper::SerializeAssetsDependencyAsJsonString(AssetsDependency);
 			
 			FString SaveAssetRelatedInfoToFile = FPaths::Combine(
-				FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(), Context.GetSettingObject()->GetVersionId()),
+				// ZJ_Change_Start: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
+				//FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(), Context.GetSettingObject()->GetVersionId()),
+				Context.GetSettingObject()->GetSaveAbsPath(),
+				// ZJ_Change_End: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
 				FString::Printf(TEXT("%s_AssetRelatedInfos.json"), *Context.NewReleaseVersion.VersionId)
 			);
 			if (UFLibAssetManageHelperEx::SaveStringToFile(SaveAssetRelatedInfoToFile, AssetsDependencyString))
@@ -220,8 +229,11 @@ namespace ReleaseWorker
 				FPaths::ProjectDir(),
 				FApp::GetProjectName(),
 				Context.GetSettingObject()->GetBackupMetadataPlatforms(),
-			FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(),
-				Context.GetSettingObject()->GetVersionId())
+				// ZJ_Change_Start: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
+				//FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(),
+				//Context.GetSettingObject()->GetVersionId())
+				Context.GetSettingObject()->GetSaveAbsPath()
+				// ZJ_Change_End: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
 			);
 		}
 		return true;

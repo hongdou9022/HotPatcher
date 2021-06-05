@@ -1,4 +1,4 @@
-#pragma once 
+﻿#pragma once 
 // engine header
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
@@ -21,6 +21,10 @@ public:
 	bool bCookAllMap;
 	UPROPERTY(EditAnywhere)
 	TArray<FString> CookMaps;
+	// ZJ_Change_Start: 添加指定Map目录, 导出目录下所有Map
+	UPROPERTY(EditAnywhere)
+	TArray<FString> CookMapFolders;
+	// ZJ_Change_End: 添加指定Map目录, 导出目录下所有Map
 	UPROPERTY(EditAnywhere)
 	TArray<FString> CookFilter;
 	UPROPERTY(EditAnywhere)

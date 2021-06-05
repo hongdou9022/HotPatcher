@@ -28,6 +28,20 @@ USTRUCT(BlueprintType)
 struct FPakInternalInfo
 {
 	GENERATED_USTRUCT_BODY()
+	
+	// ZJ_Change_Start: 添加构造函数
+	FPakInternalInfo() {}
+
+	FPakInternalInfo(bool bNeedAll)
+		: bIncludeAssetRegistry(true)
+		, bIncludeGlobalShaderCache(true)
+		, bIncludeShaderBytecode(true)
+		, bIncludeEngineIni(true)
+		, bIncludePluginIni(true)
+		, bIncludeProjectIni(true)
+	{}
+	// ZJ_Change_End: 添加构造函数
+
 public:
 	FORCEINLINE bool HasValidAssets()const
 	{

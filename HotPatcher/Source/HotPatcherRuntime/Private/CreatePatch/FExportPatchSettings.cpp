@@ -1,4 +1,4 @@
-#include "CreatePatch/FExportPatchSettings.h"
+﻿#include "CreatePatch/FExportPatchSettings.h"
 #include "FLibAssetManageHelperEx.h"
 #include "HotPatcherLog.h"
 
@@ -192,7 +192,11 @@ bool FExportPatchSettings::GetBaseVersionInfo(FHotPatcherVersion& OutBaseVersion
 
 FString FExportPatchSettings::GetCurrentVersionSavePath() const
 {
-	FString CurrentVersionSavePath = FPaths::Combine(this->GetSaveAbsPath(), /*const_cast<FExportPatchSettings*>(this)->GetNewPatchVersionInfo().*/VersionId);
+	// ZJ_Change_Start: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
+	//FString CurrentVersionSavePath = FPaths::Combine(this->GetSaveAbsPath(), /*const_cast<FExportPatchSettings*>(this)->GetNewPatchVersionInfo().*/VersionId);
+	FString CurrentVersionSavePath = this->GetSaveAbsPath();
+	// ZJ_Change_End: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
+
 	return CurrentVersionSavePath;
 }
 

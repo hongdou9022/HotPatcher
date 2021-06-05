@@ -1,4 +1,4 @@
-#include "HotCookerCommandlet.h"
+﻿#include "HotCookerCommandlet.h"
 #include "ThreadUtils/FProcWorkerThread.hpp"
 #include "FCookerConfig.h"
 #include "FlibPatchParserHelper.h"
@@ -16,6 +16,32 @@
 DEFINE_LOG_CATEGORY(LogHotCookerCommandlet);
 
 TSharedPtr<FProcWorkerThread> CookerProc;
+
+// ZJ_Change_Start: 命令行设置CookPlatform
+#define COOK_PLATFORMS TEXT("SetCookPlatforms")
+TArray<FString> ParserCookPlatforms(const FString& Commandline)
+{
+	TArray<FString> result;
+	TMap<FString, FString> KeyValues = UFlibPatchParserHelper::GetCommandLineParamsMap(Commandline);
+	if(KeyValues.Find(COOK_PLATFORMS))
+	{
+		FString AddPakListInfo = *KeyValues.Find(COOK_PLATFORMS);
+		TArray<FString> PlatformLists;
+		AddPakListInfo.ParseIntoArray(PlatformLists,TEXT(","));
+
+		for(auto& PlatformName:PlatformLists)
+		{
+			ETargetPlatform Platform = ETargetPlatform::None;
+			UFlibPatchParserHelper::GetEnumValueByName(PlatformName,Platform);
+			if(Platform != ETargetPlatform::None)
+			{
+				result.AddUnique(PlatformName);
+			}
+		}
+	}
+	return result;
+}
+// ZJ_Change_End: 命令行设置CookPlatform
 
 int32 UHotCookerCommandlet::Main(const FString& Params)
 {
@@ -44,10 +70,32 @@ int32 UHotCookerCommandlet::Main(const FString& Params)
 		TMap<FString, FString> KeyValues = UFlibPatchParserHelper::GetCommandLineParamsMap(Params);
 		UFlibPatchParserHelper::ReplaceProperty(CookConfig, KeyValues);
 		
+		// ZJ_Change_Start: 命令行设置CookPlatform
+		TArray<FString> CookPlatforms = ParserCookPlatforms(Params);
+		if (CookPlatforms.Num() > 0)
+		{
+			CookConfig.CookPlatforms = CookPlatforms;
+		}
+		// ZJ_Change_End: 命令行设置CookPlatform
+
 		if (CookConfig.bCookAllMap)
 		{
 			CookConfig.CookMaps = UFlibPatchParserHelper::GetAvailableMaps(UKismetSystemLibrary::GetProjectDirectory(), ENABLE_COOK_ENGINE_MAP, ENABLE_COOK_PLUGIN_MAP, true);
 		}
+		// ZJ_Change_Start: 添加MapFolder中的Map
+		else
+		{
+			TArray<FString> AssignFolderMaps = UFlibPatchParserHelper::GetAssignFolderMaps(CookConfig.CookMapFolders, true);
+			for (auto& Map : AssignFolderMaps)
+			{
+				if (!CookConfig.CookMaps.Contains(Map))
+				{
+					CookConfig.CookMaps.Emplace(Map);
+				}
+			}
+		}
+		// ZJ_Change_End: 添加MapFolder中的Map
+
 		FString CookCommand;
 		UFlibPatchParserHelper::GetCookProcCommandParams(CookConfig, CookCommand);
 

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "FLibAssetManageHelperEx.h"
 #include "FCookerConfig.h"
@@ -14,6 +14,9 @@
 #include "Delegates/DelegateCombinations.h"
 
 DECLARE_DELEGATE_OneParam(FRequestExSettingsDlg, TArray<FString>&);
+// ZJ_Change_Start
+DECLARE_DELEGATE_OneParam(FRequestCookMapFoldersDlg, TArray<FDirectoryPath>&);
+// ZJ_Change_End
 DECLARE_DELEGATE_OneParam(FRequestSpecifyCookFilterDlg, TArray<FDirectoryPath>&);
 
 class FHotPatcherCookModel
@@ -95,6 +98,15 @@ public:
 		return mOptionSettings;
 	}
 
+	// ZJ_Change_Start: 取Map目录的真实路径
+	TArray<FDirectoryPath> GetCookMapFolders()
+	{
+		TArray<FDirectoryPath> MapFolders;
+		OnRequestCookMapFolders.ExecuteIfBound(MapFolders);
+		return MapFolders;
+	}
+	// ZJ_Change_End: 取Map目录的真实路径
+
 	TArray<FDirectoryPath> GetAlwayCookFilters()
 	{
 		TArray<FDirectoryPath> CookFilters;
@@ -128,7 +140,10 @@ public:
 			OutFaildReson = TEXT("Not Selected any Platform.");
 			return false;
 		}
-		if (!(mSelectedCookMaps.Num() > 0 || GetAlwayCookFilters().Num() > 0)&& !mOptionSettings.Contains(TEXT("CookAll")))
+		// ZJ_Change_Start: 添加GetCookMapFolders().Num() > 0筛选条件
+		//if (!(mSelectedCookMaps.Num() > 0 || GetAlwayCookFilters().Num() > 0)&& !mOptionSettings.Contains(TEXT("CookAll")))
+		if (!(mSelectedCookMaps.Num() > 0 || GetCookMapFolders().Num() > 0 || GetAlwayCookFilters().Num() > 0)&& !mOptionSettings.Contains(TEXT("CookAll")))
+		// ZJ_Change_End: 添加GetCookMapFolders().Num() > 0筛选条件
 		{
 			OutFaildReson = TEXT("Not Selected any Cookable things.");
 			return false;
@@ -200,6 +215,12 @@ public:
 		result.CookMaps = mSelectedCookMaps;
 		TArray<FString> AllGameMap = UFlibPatchParserHelper::GetAvailableMaps(UKismetSystemLibrary::GetProjectDirectory(), ENABLE_COOK_ENGINE_MAP, ENABLE_COOK_PLUGIN_MAP, true);
 		result.bCookAllMap = result.CookMaps.Num() == AllGameMap.Num();
+		// ZJ_Change_Start: AddMapFolders
+		for (const auto& MapFolders : GetCookMapFolders())
+		{
+			result.CookMapFolders.AddUnique(MapFolders.Path);
+		}
+		// ZJ_Change_End: AddMapFolders
 		for (const auto& Filter : GetAlwayCookFilters())
 		{
 			result.CookFilter.AddUnique(Filter.Path);
@@ -211,6 +232,9 @@ public:
 	}
 public:
 	FRequestExSettingsDlg OnRequestExSettings;
+	// ZJ_Change_Start: OnRequestCookMapFolders
+	FRequestCookMapFoldersDlg OnRequestCookMapFolders;
+	// ZJ_Change_End: OnRequestCookMapFolders
 	FRequestSpecifyCookFilterDlg OnRequestSpecifyCookFilter;
 private:
 	TArray<FString> mSelectedPlatform;

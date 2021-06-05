@@ -1,4 +1,4 @@
-// Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
 
 #include "SProjectCookPage.h"
 #include "SHotPatcherCookedPlatforms.h"
@@ -119,6 +119,27 @@ void SProjectCookPage::Construct(const FArguments& InArgs, TSharedPtr<FHotPatche
 			]
 
 			]
+		// ZJ_Change_Start: UI
+		+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.0, 8.0, 0.0, 0.0)
+			[
+				SNew(SExpandableArea)
+				.AreaTitle(LOCTEXT("CookMapFolders", "MapFolder(s)"))
+				.InitiallyCollapsed(true)
+				.Padding(8.0)
+				.BodyContent()
+				[
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SAssignNew(CookMapFolders, SHotPatcherCookMapFolders, mCookModel)
+					]
+				]
+
+			]
+		// ZJ_Change_End: UI
 		+ SVerticalBox::Slot()
 			.AutoHeight()
 			.Padding(0.0, 8.0, 0.0, 0.0)
@@ -276,7 +297,10 @@ bool SProjectCookPage::CanExecuteCook()const
 
 	bool bCanCook = !!mCookModel->GetAllSelectedPlatform().Num() &&
 					(
-						!!mCookModel->GetAllSelectedCookMap().Num() ||
+						// ZJ_Change_Start: 添加筛选条件
+						//!!mCookModel->GetAllSelectedCookMap().Num() ||
+						(!!mCookModel->GetAllSelectedCookMap().Num() && !!mCookModel->GetCookMapFolders().Num()) ||
+						// ZJ_Change_End: 添加筛选条件
 						!!mCookModel->GetAlwayCookFilters().Num() ||
 						mCookModel->GetAllSelectedSettings().Contains(TEXT("CookAll"))
 					);
@@ -288,6 +312,16 @@ FReply SProjectCookPage::RunCook()const
 {
 	FCookerConfig CookConfig = mCookModel->GetCookConfig();
 
+	// ZJ_Change_Start: 将Map目录中的Map添加到CookMap列表中
+	TArray<FString> AssignFolderMaps = UFlibPatchParserHelper::GetAssignFolderMaps(CookConfig.CookMapFolders, true);
+	for (auto& Map : AssignFolderMaps)
+	{
+		if (!CookConfig.CookMaps.Contains(Map))
+		{
+			CookConfig.CookMaps.Emplace(Map);
+		}
+	}
+	// ZJ_Change_End 将Map目录中的Map添加到CookMap列表中
 	if (FPaths::FileExists(CookConfig.EngineBin) && FPaths::FileExists(CookConfig.ProjectPath))
 	{
 		FString CookCommand;

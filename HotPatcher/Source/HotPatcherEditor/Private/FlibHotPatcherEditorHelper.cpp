@@ -700,6 +700,9 @@ FString UFlibHotPatcherEditorHelper::MakePakShortName(const FHotPatcherVersion& 
 	};
 	
 	TArray<FResularOperator> RegularOpList;
+	// ZJ_Change_Start: 添加预设名
+	RegularOpList.Emplace(TEXT("{_VERSION}"),[&InCurrentVersion]()->FString{return InCurrentVersion.VersionId.Replace(TEXT("."), TEXT("_"));});
+	// ZJ_Change_End: 添加预设名
 	RegularOpList.Emplace(TEXT("{VERSION}"),[&InCurrentVersion]()->FString{return InCurrentVersion.VersionId;});
 	RegularOpList.Emplace(TEXT("{BASEVERSION}"),[&InCurrentVersion]()->FString{return InCurrentVersion.BaseVersionId;});
 	RegularOpList.Emplace(TEXT("{PLATFORM}"),[&InPlatform]()->FString{return InPlatform;});

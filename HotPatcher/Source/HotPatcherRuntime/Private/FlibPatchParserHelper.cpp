@@ -67,6 +67,35 @@ TArray<FString> UFlibPatchParserHelper::GetAvailableMaps(FString GameName, bool 
 	return AllMaps;
 }
 
+// ZJ_Change_Start: 取指定的Map目录
+TArray<FString> UFlibPatchParserHelper::GetAssignFolderMaps(TArray<FString> MapFolders, bool Sorted)
+{
+	const FString WildCard = FString::Printf(TEXT("*%s"), *FPackageName::GetMapPackageExtension());
+	TArray<FString> Maps;
+
+	FString ProjectPath = UKismetSystemLibrary::GetProjectDirectory();
+	for (auto& Folder : MapFolders)
+	{
+		FString MapFolderAbsPath =  FPaths::Combine(*ProjectPath, *Folder);
+		MapFolderAbsPath = MapFolderAbsPath.Replace(TEXT("//Game"), TEXT("//Content"));
+		TArray<FString> OutMaps;
+		IFileManager::Get().FindFilesRecursive(OutMaps, *MapFolderAbsPath, *WildCard, true, false);
+		
+		for (const auto& MapPath : OutMaps)
+		{
+			Maps.Add(FPaths::GetBaseFilename(MapPath));
+		}
+	}
+	
+	if (Sorted)
+	{
+		Maps.Sort();
+	}
+
+	return Maps;
+}
+// ZJ_Change_End: 取指定的Map目录
+
 FString UFlibPatchParserHelper::GetProjectName()
 {
 	return FApp::GetProjectName();
@@ -801,6 +830,78 @@ TArray<FString> UFlibPatchParserHelper::GetPakCommandsFromInternalInfo(
 	return OutPakCommands;
 }
 
+// ZJ_Change_Start: 收集AssetRegistry, GlobalShaderCache, ShaderBytecode和ini文件参与版本比对
+TArray<FExternFileInfo> UFlibPatchParserHelper::ConvIniExternFiles(const FString& InEngineAbsDir, const FString& InProjectAbsDir, const FString& InProjectName, const TArray<FString>& InIniFiles)
+{
+	TArray<FExternFileInfo> IniExternFiles;
+
+	if (!FPaths::DirectoryExists(InProjectAbsDir) || !FPaths::DirectoryExists(InEngineAbsDir))
+		return IniExternFiles;
+	FString UProjectFile = FPaths::Combine(InProjectAbsDir, InProjectName + TEXT(".uproject"));
+	if (!FPaths::FileExists(UProjectFile))
+		return IniExternFiles;
+
+	for (const auto& IniFile : InIniFiles)
+	{
+		bool bIsInProjectIni = false;
+		if (IniFile.Contains(InProjectAbsDir))
+		{
+			bIsInProjectIni = true;
+		}
+
+		{
+			FString IniAbsDir;
+			FString IniFileName;
+			FString IniExtention;
+			FPaths::Split(IniFile, IniAbsDir, IniFileName, IniExtention);
+
+			FString RelativePath;
+
+			if (bIsInProjectIni)
+			{
+				RelativePath = FString::Printf(
+					TEXT("../../../%s/"), 
+					*InProjectName
+				);
+				
+				FString RelativeToProjectDir = UKismetStringLibrary::GetSubstring(IniAbsDir, InProjectAbsDir.Len(), IniAbsDir.Len() - InProjectAbsDir.Len());
+				RelativePath = FPaths::Combine(RelativePath, RelativeToProjectDir);
+			}
+			else
+			{
+				RelativePath = FString::Printf(
+					TEXT("../../../Engine/")
+				);
+				FString RelativeToEngineDir = UKismetStringLibrary::GetSubstring(IniAbsDir, InEngineAbsDir.Len(), IniAbsDir.Len() - InEngineAbsDir.Len());
+				RelativePath = FPaths::Combine(RelativePath, RelativeToEngineDir);
+			}
+
+			FString IniFileNameWithExten = FString::Printf(TEXT("%s.%s"),*IniFileName,*IniExtention);
+			FString CookedIniRelativePath = FPaths::Combine(RelativePath, IniFileNameWithExten);
+
+			FExternFileInfo ExFile;
+			ExFile.FilePath.FilePath = IniFile;
+			ExFile.MountPath = CookedIniRelativePath;
+			ExFile.GetFileHash();
+			IniExternFiles.Emplace(ExFile);
+		}
+	}
+	return IniExternFiles;
+}
+
+TArray<FExternFileInfo> UFlibPatchParserHelper::GetExternFilesFromInternalInfo(const FPakInternalInfo& InPakInternalInfo, const FString& InPlatformName)
+{
+	TArray<FExternFileInfo> ExternFiles = GetInternalFilesAsExFiles(InPakInternalInfo, InPlatformName);
+
+	TArray<FString> IniFiles = GetIniFilesByPakInternalInfo(InPakInternalInfo, InPlatformName);
+	FString ProjectAbsDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+	FString EngineAbsDir = FPaths::ConvertRelativePathToFull(FPaths::EngineDir());
+	TArray<FExternFileInfo> IniExternFiles = ConvIniExternFiles(EngineAbsDir, ProjectAbsDir, UFlibPatchParserHelper::GetProjectName(), IniFiles);
+	ExternFiles.Append(IniExternFiles);
+
+	return ExternFiles;
+}
+// ZJ_Change_End: 收集AssetRegistry, GlobalShaderCache, ShaderBytecode和ini文件参与版本比对
 
 FChunkInfo UFlibPatchParserHelper::CombineChunkInfo(const FChunkInfo& R, const FChunkInfo& L)
 {
@@ -1213,7 +1314,10 @@ TArray<FPakCommand> UFlibPatchParserHelper::CollectPakCommandByChunk(
 		// TArray<FString> NotCompressOptions = PakOptions;
 		// if(NotCompressOptions.Contains(TEXT("-compress")))
 		// 	NotCompressOptions.Remove(TEXT("-compress"));
-		UFlibPatchParserHelper::GetPakCommandsFromInternalInfo(ChunkAssetsDescrible.InternalFiles, PlatformName,/* NotCompressOptions,*/ ReceivePakCommandExFilesLambda);
+
+		// ZJ_Change_Start: 默认包含, 在前面添加hash比对, 避免每次Patch都包含
+		// UFlibPatchParserHelper::GetPakCommandsFromInternalInfo(ChunkAssetsDescrible.InternalFiles, PlatformName,/* NotCompressOptions,*/ ReceivePakCommandExFilesLambda);
+		// ZJ_Change_End: 默认包含, 在前面添加hash比对, 避免每次Patch都包含
 		return PakCommands;
 	};
 
@@ -1638,6 +1742,66 @@ bool UFlibPatchParserHelper::GetCookProcCommandParams(const FCookerConfig& InCon
 
 	return true;
 }
+
+// ZJ_Change_Start: 取ExCookCommandParams
+bool UFlibPatchParserHelper::GetCookProcExCommandParams(const FCookerConfig& InConfig, FString& OutParams)
+{
+	FString FinalParams;
+	FinalParams.Append(FString::Printf(TEXT("BuildCookRun -project=\"%s\" -cook "), *InConfig.ProjectPath));
+
+	auto CombineParamsLambda = [&FinalParams,&InConfig](const FString& InName, const TArray<FString>& InArray)
+	{
+		if(!InArray.Num())
+			return;
+		FinalParams.Append(InName);
+
+		for (int32 Index = 0; Index < InArray.Num(); ++Index)
+		{
+			FinalParams.Append(InArray[Index]);
+			if (!(Index == InArray.Num() - 1))
+			{
+				FinalParams.Append(TEXT("+"));
+			}
+		}
+		FinalParams.Append(TEXT(" "));
+	};
+	CombineParamsLambda(TEXT("-targetplatform="), InConfig.CookPlatforms);
+	CombineParamsLambda(TEXT("-Map="), InConfig.CookMaps);
+
+	FString FilterParams;
+	for (const auto& CookFilter : InConfig.CookFilter)
+	{
+		FString FilterFullPath;
+		if (UFLibAssetManageHelperEx::ConvRelativeDirToAbsDir(CookFilter, FilterFullPath))
+		{
+			if (FPaths::DirectoryExists(FilterFullPath))
+			{
+				if (!FilterParams.IsEmpty())
+				{
+					FilterParams.Append(TEXT("+"));
+				}
+				FilterParams.Append(FString::Printf(TEXT("\"%s\""), *FilterFullPath));
+			}
+		}
+	}
+	if (!FilterParams.IsEmpty())
+	{
+		FinalParams.Append(FString::Printf(TEXT("-COOKDIR=%s "), *FilterParams));
+	}
+
+	for (const auto& Option : InConfig.CookSettings)
+	{
+		FinalParams.Append(TEXT("-") + Option + TEXT(" "));
+	}
+
+	FinalParams.Append(InConfig.Options);
+
+	OutParams = FinalParams;
+
+	return true;
+}
+// ZJ_Change_End: 取ExCookCommandParams
+
 
 void UFlibPatchParserHelper::ExcludeContentForVersionDiff(FPatchVersionDiff& VersionDiff,const TArray<FString>& ExcludeRules)
 {

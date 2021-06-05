@@ -48,6 +48,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "HotPatcher|Flib")
 		static TArray<FString> GetAvailableMaps(FString GameName, bool IncludeEngineMaps,bool IncludePluginMaps, bool Sorted);
+	// ZJ_Change_Start: 取指定的Map目录
+	UFUNCTION(BlueprintCallable, Category = "HotPatcher|Flib")
+		static TArray<FString> GetAssignFolderMaps(TArray<FString> MapFolders, bool Sorted);
+	// ZJ_Change_End: 取指定的Map目录
 	UFUNCTION(BlueprintCallable, Category = "HotPatcher|Flib")
 		static FString GetProjectName();
 	UFUNCTION(BlueprintCallable)
@@ -159,6 +163,11 @@ public:
 		// const TArray<FString>& InPakOptions, 
 		TFunction<void(const FPakCommand&)> InReceiveCommand=[](const FPakCommand&) {});
 	
+	// ZJ_Change_Start: 收集AssetRegistry, GlobalShaderCache, ShaderBytecode和ini文件参与版本比对
+	static TArray<FExternFileInfo> ConvIniExternFiles(const FString& InEngineAbsDir, const FString& InProjectAbsDir, const FString& InProjectName, const TArray<FString>& InIniFiles);
+	static TArray<FExternFileInfo> GetExternFilesFromInternalInfo(const FPakInternalInfo& InPakInternalInfo, const FString& InPlatformName);
+	// ZJ_Change_End: 收集AssetRegistry, GlobalShaderCache, ShaderBytecode和ini文件参与版本比对
+
 	static FChunkInfo CombineChunkInfo(const FChunkInfo& R, const FChunkInfo& L);
 	static FChunkInfo CombineChunkInfos(const TArray<FChunkInfo>& Chunks);
 
@@ -224,6 +233,10 @@ public:
 	);
 
 	static bool GetCookProcCommandParams(const FCookerConfig& InConfig,FString& OutParams);
+	// ZJ_Change_Start: 取ExCookCommandParams
+	static bool GetCookProcExCommandParams(const FCookerConfig& InConfig,FString& OutParams);
+	// ZJ_Change_End: 取ExCookCommandParams
+
 	//static bool SerializeMonolithicPathMode(const EMonolithicPathMode& InMode, TSharedPtr<FJsonValue>& OutJsonValue);
 	//static bool DeSerializeMonolithicPathMode(const TSharedPtr<FJsonValue>& InJsonValue, EMonolithicPathMode& OutMode);
 

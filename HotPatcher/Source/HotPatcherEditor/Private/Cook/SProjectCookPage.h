@@ -13,6 +13,9 @@
 #include "SHotPatcherCookedPlatforms.h"
 #include "SHotPatcherCookMaps.h"
 #include "SHotPatcherCookSetting.h"
+// ZJ_Change_Start
+#include "SHotPatcherCookMapFolders.h"
+// ZJ_Change_End
 #include "SHotPatcherCookSpecifyCookFilter.h"
 
 
@@ -61,6 +64,9 @@ protected:
 		TArray<ICookerItemInterface*> List;
 		List.Add(Platforms.Get());
 		List.Add(CookMaps.Get());
+		// ZJ_Change_Start
+		List.Add(CookMapFolders.Get());
+		// ZJ_Change_End
 		List.Add(CookFilters.Get());
 		List.Add(CookSettings.Get());
 		return List;
@@ -77,6 +83,9 @@ private:
 	mutable TSharedPtr<FProcWorkerThread> mCookProcWorkingThread;
 	TSharedPtr<SHotPatcherCookedPlatforms> Platforms;
 	TSharedPtr<SHotPatcherCookMaps> CookMaps;
+	// ZJ_Change_Start
+	TSharedPtr<SHotPatcherCookMapFolders> CookMapFolders;
+	// ZJ_Change_End
 	TSharedPtr<SHotPatcherCookSpecifyCookFilter> CookFilters;
 	TSharedPtr<SHotPatcherCookSetting> CookSettings;
 

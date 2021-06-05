@@ -196,6 +196,15 @@ namespace PatchWorker
 			Context.GetSettingObject()->IsAnalysisFilterDependencies()
 		);
 		UE_LOG(LogHotPatcher,Display,TEXT("New Version total asset number is %d."),Context.GetSettingObject()->GetAssetsDependenciesScanedCaches().Num());
+					
+		// ZJ_Change_Start: 将AssetRegistry,GlobalShaderCache,ShaderBytecode和ini文件添加到文件比对中, 有变化就导出, 不再选中设定include必定导出
+		for (auto& Assets : Context.CurrentVersion.PlatformAssets)
+		{
+			FString PlatformName = StaticEnum<ETargetPlatform>()->GetNameStringByValue((uint8)Assets.Key);
+			Assets.Value.AddExternFileToPak.Append(UFlibPatchParserHelper::GetExternFilesFromInternalInfo(FPakInternalInfo(true), PlatformName));
+		}
+		// ZJ_Change_End: 将AssetRegistry,GlobalShaderCache,ShaderBytecode和ini文件添加到文件比对中, 有变化就导出, 不再选中设定include必定导出
+	
 		return true;
 	};
 
@@ -494,7 +503,10 @@ namespace PatchWorker
 					Context.OnPaking.Broadcast(TEXT("ExportPatch"),*Dialog.ToString());
 					Context.UnrealPakSlowTask->EnterProgressFrame(1.0, Dialog);
 				}
-				FString ChunkSaveBasePath = FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(), Context.CurrentVersion.VersionId, PlatformName);
+				// ZJ_Change_Start: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
+				//FString ChunkSaveBasePath = FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(), Context.CurrentVersion.VersionId, PlatformName);				
+				FString ChunkSaveBasePath = Context.GetSettingObject()->GetSaveAbsPath();
+				// ZJ_Change_End: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
 				
 				TArray<FPakCommand> ChunkPakListCommands;
 				{
@@ -1100,8 +1112,11 @@ namespace PatchWorker
 					FPaths::ProjectDir(),
 					FApp::GetProjectName(),
 					Context.GetSettingObject()->GetPakTargetPlatforms(),
-					FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(),
-					Context.GetSettingObject()->GetVersionId())
+					// ZJ_Change_Start: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
+					//FPaths::Combine(Context.GetSettingObject()->GetSaveAbsPath(),
+					//Context.GetSettingObject()->GetVersionId())
+					Context.GetSettingObject()->GetSaveAbsPath()
+					// ZJ_Change_End: 文件直接保存在选定目录, 不需要创建版本号为名的子目录
 				);
 			}
 		}
